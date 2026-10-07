@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Casamento · Finanças</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💍</text></svg>">
+  <link rel="stylesheet" href="styles.css?v=2">
+</head>
+<body>
+  <header class="topo">
+    <div class="topo-titulo">
+      <h1 id="titulo">Casamento</h1>
+      <p id="contagem" class="contagem" hidden></p>
+    </div>
+    <div class="topo-acoes">
+      <span id="atualizado" class="atualizado" aria-live="polite"></span>
+      <button id="btn-atualizar" class="btn" type="button" title="Buscar dados novos da planilha">
+        <span aria-hidden="true">↻</span> Atualizar
+      </button>
+      <button id="btn-tema" class="btn btn-icone" type="button" title="Alternar tema claro/escuro" aria-label="Alternar tema">◐</button>
+      <button id="btn-sair" class="btn" type="button" title="Esquecer o token neste aparelho" hidden>Sair</button>
+    </div>
+  </header>
+
+  <div id="aviso" class="aviso" role="status" hidden></div>
+
+  <!-- Tela de acesso -->
+  <section id="tela-token" class="cartao tela-token" hidden>
+    <h2>Acesso ao dashboard</h2>
+    <p>Cole o token gerado na planilha (menu <b>💍 Casamento → Mostrar token do dashboard</b>). Ele fica salvo só neste aparelho.</p>
+    <form id="form-token">
+      <input id="input-token" type="password" autocomplete="off" placeholder="Token" required>
+      <button class="btn btn-primario" type="submit">Entrar</button>
+    </form>
+    <p id="erro-token" class="erro" hidden></p>
+  </section>
+
+  <main id="painel" hidden>
+    <!-- Resumo -->
+    <section class="cartao heroi" aria-labelledby="h-resumo">
+      <h2 id="h-resumo" class="sr-only">Resumo</h2>
+      <div class="heroi-numero">
+        <span class="rotulo">Já pago</span>
+        <span id="kpi-pago" class="valor-heroi">—</span>
+        <span id="kpi-pago-de" class="sub"></span>
+      </div>
+      <div id="meter" class="meter" role="img"></div>
+      <ul class="legenda" aria-hidden="true">
+        <li><i class="cor-pago"></i>Pago</li>
+        <li><i class="cor-agendado"></i>A pagar (agendado)</li>
+        <li><i class="cor-falta"></i>Falta agendar</li>
+      </ul>
+    </section>
+
+    <section class="kpis" aria-label="Indicadores">
+      <div class="cartao kpi"><span class="rotulo">Orçamento total</span><span id="kpi-total" class="valor">—</span><span id="kpi-total-sub" class="sub"></span></div>
+      <div class="cartao kpi"><span class="rotulo">A pagar (agendado)</span><span id="kpi-agendado" class="valor">—</span><span id="kpi-agendado-sub" class="sub"></span></div>
+      <div class="cartao kpi"><span class="rotulo">Falta agendar</span><span id="kpi-falta" class="valor">—</span><span id="kpi-falta-sub" class="sub"></span></div>
+      <div class="cartao kpi"><span class="rotulo">Itens para fechar</span><span id="kpi-fechar" class="valor">—</span><span id="kpi-fechar-sub" class="sub"></span></div>
+    </section>
+
+    <div class="grade">
+      <section class="cartao" aria-labelledby="h-proximos">
+        <h2 id="h-proximos">Próximos pagamentos</h2>
+        <p class="descricao">Vencidos e os próximos 60 dias</p>
+        <ul id="lista-proximos" class="lista"></ul>
+      </section>
+
+      <section class="cartao" aria-labelledby="h-fechar">
+        <h2 id="h-fechar">O que falta fechar</h2>
+        <p class="descricao">Itens sem contrato e saldos sem pagamento agendado</p>
+        <div id="lista-fechar"></div>
+      </section>
+    </div>
+
+    <section class="cartao" aria-labelledby="h-mensal">
+      <div class="cartao-cabecalho">
+        <div>
+          <h2 id="h-mensal">Pagamentos por mês</h2>
+          <p class="descricao">Quanto sai em cada mês</p>
+        </div>
+        <ul class="legenda" aria-hidden="true">
+          <li><i class="cor-pago"></i>Pago</li>
+          <li><i class="cor-agendado"></i>A pagar</li>
+        </ul>
+      </div>
+      <div id="grafico-mensal" class="grafico-colunas"></div>
+      <p id="mensal-sem-data" class="nota" hidden></p>
+    </section>
+
+    <div class="grade">
+      <section class="cartao" aria-labelledby="h-grupos">
+        <div class="cartao-cabecalho">
+          <div>
+            <h2 id="h-grupos">Por grupo</h2>
+            <p class="descricao">Valor de cada grupo e quanto já foi pago</p>
+          </div>
+        </div>
+        <div id="grafico-grupos" class="barras"></div>
+      </section>
+
+      <section class="cartao" aria-labelledby="h-pessoas">
+        <h2 id="h-pessoas">Quem paga</h2>
+        <p class="descricao">Já pago e a pagar por pessoa</p>
+        <div id="grafico-pessoas" class="barras"></div>
+      </section>
+    </div>
+
+    <section class="cartao" aria-labelledby="h-itens">
+      <div class="cartao-cabecalho">
+        <div>
+          <h2 id="h-itens">Todos os itens</h2>
+          <p class="descricao">Toque em uma linha para ver os pagamentos</p>
+        </div>
+        <div class="filtros">
+          <input id="filtro-busca" type="search" placeholder="Buscar item ou fornecedor" aria-label="Buscar">
+          <select id="filtro-status" aria-label="Filtrar por status"><option value="">Todos os status</option></select>
+          <select id="filtro-grupo" aria-label="Filtrar por grupo"><option value="">Todos os grupos</option></select>
+        </div>
+      </div>
+      <div class="tabela-wrap">
+        <table id="tabela-itens" class="tabela">
+          <thead>
+            <tr>
+              <th data-ordem="item">Item</th>
+              <th data-ordem="status" class="col-status">Status</th>
+              <th data-ordem="valor" class="num">Valor</th>
+              <th data-ordem="pago" class="num">Pago</th>
+              <th data-ordem="agendado" class="num col-opcional">A pagar</th>
+              <th data-ordem="falta" class="num col-opcional">Falta agendar</th>
+              <th data-ordem="pct" class="col-progresso"><span class="so-desktop">Progresso</span><span class="so-mobile-inline">%</span></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot></tfoot>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
+
+  <script src="config.js?v=2"></script>
+  <script src="app.js?v=2"></script>
+</body>
+</html>
