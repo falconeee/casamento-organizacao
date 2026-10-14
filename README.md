@@ -14,6 +14,7 @@ Dashboard das finanças do casamento. Os dados vêm de uma planilha Google, por 
 | `sample-data.json` | Dados fictícios para o modo `?demo` |
 | `apps-script/Setup.gs` | Cria as abas, listas suspensas, fórmulas e formatação na planilha |
 | `apps-script/Api.gs` | `doGet` que devolve o JSON (exige `?token=`) |
+| `apps-script/Lembretes.gs` | E-mail diário consolidado com os pagamentos dos próximos dias |
 | `apps-script/Migracao.gs` | Dados reais migrados da planilha antiga (**fora do git**) |
 
 Nenhum valor real nem o token ficam neste repositório.
