@@ -103,6 +103,10 @@ function onOpen() {
     .createMenu('💍 Casamento')
     .addItem('Mostrar token do dashboard', 'mostrarToken')
     .addItem('Gerar novo token', 'gerarNovoTokenComAviso')
+    .addSeparator()
+    .addItem('Ativar lembretes por e-mail', 'ativarLembretes')
+    .addItem('Enviar e-mail de teste', 'enviarEmailDeTeste')
+    .addItem('Desativar lembretes', 'desativarLembretes')
     .addToUi();
 }
 

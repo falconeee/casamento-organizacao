@@ -30,6 +30,7 @@ Na planilha: **Arquivo → Fazer uma cópia**. Guarde essa cópia. O setup não 
 3. Clique em **+ → Script**, crie o arquivo `Migracao` e cole o conteúdo de `apps-script/Migracao.gs`.
    > Esse arquivo tem os dados reais e **não** vai para o GitHub. Ele está só na pasta local do projeto.
 4. Clique em **+ → Script**, crie o arquivo `Api` e cole o conteúdo de [`apps-script/Api.gs`](apps-script/Api.gs).
+   Faça o mesmo para `Lembretes` com [`apps-script/Lembretes.gs`](apps-script/Lembretes.gs) (lembretes por e-mail; veja a seção 14).
 5. Salve (ícone de disquete ou `Cmd+S`).
 6. (Recomendado) Em **⚙️ Configurações do projeto**, ajuste o **Fuso horário** para `(GMT-03:00) São Paulo`.
 
@@ -151,3 +152,27 @@ O GitHub Pages deixa o navegador guardar os arquivos por até 10 minutos. Para t
 | Mudei o `Api.gs` e nada mudou | Implantação ainda na versão antiga | Passo 12 |
 | Item aparece com "Item não cadastrado na aba Itens" | Pagamento com nome de item que não existe em Itens | Cadastre o item ou corrija o nome |
 | Erro "Exception: ... permission" ao abrir a API | Autorização expirou | Rode qualquer função no editor e autorize de novo |
+| Lembrete não chegou | Gatilho não ativado, nenhum pagamento no dia configurado, ou caiu no spam | Rode **Enviar e-mail de teste**; confira os dias na aba Config e a pasta de spam |
+
+## 14. Lembretes por e-mail 📧
+
+Todo dia, por volta das 8h, o script procura pagamentos **"A pagar"** que vencem daqui a N dias e manda **um único e-mail** com todos eles, agrupados por data. Dois pagamentos no mesmo dia (ou em dias diferentes que caem no mesmo lembrete) viram um e-mail só. Se houver pagamentos vencidos ainda como "A pagar", eles aparecem num aviso no fim do e-mail.
+
+**Para ativar (uma vez):**
+1. No Apps Script, crie o arquivo `Lembretes` (**+ → Script**) e cole o conteúdo de [`apps-script/Lembretes.gs`](apps-script/Lembretes.gs).
+2. Substitua o conteúdo do `Setup` pela versão atual de [`apps-script/Setup.gs`](apps-script/Setup.gs), que traz os itens novos no menu. Salve.
+3. Recarregue a planilha. No menu **💍 Casamento**, clique em **Ativar lembretes por e-mail**.
+   O Google pede autorização de novo, agora para **enviar e-mails como você** e **rodar em segundo plano**: Avançado → Acessar → Permitir.
+4. A aba **Config** ganha 3 linhas novas. Ajuste:
+   - **E-mails para lembretes:** vem com o seu e-mail; adicione o da sua noiva, separado por vírgula.
+   - **Lembrar com quantos dias:** padrão `3, 1` (3 dias antes e na véspera). Use `0` para lembrar no próprio dia. Ex.: `7, 3, 1, 0`.
+   - **Link do dashboard:** o endereço do GitHub Pages, para o botão "Abrir dashboard" do e-mail.
+5. Clique em **💍 Casamento → Enviar e-mail de teste** para ver como fica. Ele usa as 2 próximas datas com pagamento, sem esperar o dia certo.
+
+**Detalhes:**
+- Só sai e-mail quando há algo para lembrar, e no máximo um por dia.
+- Os e-mails saem da sua conta Google (remetente "Casamento 💍"). O limite gratuito do Gmail é de 100 destinatários por dia, muito acima do necessário.
+- Depois de pagar, mude o status para **Pago**: o pagamento sai dos próximos lembretes.
+- Para parar: **💍 Casamento → Desativar lembretes**.
+- Não é preciso criar uma nova implantação da API: o lembrete roda direto na planilha, não pelo App da Web.
+
