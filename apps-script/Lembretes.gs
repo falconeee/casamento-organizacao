@@ -306,12 +306,7 @@ function montarEmailLembrete_(ctx, selecionados, teste) {
       '</td></tr>' +
       blocos + vencidosHtml +
       // Botões
-      '<tr><td align="center" style="padding:8px 0 4px;"><table role="presentation" cellpadding="0" cellspacing="0"><tr>' + botoes + '</tr></table></td></tr>' +
-      '<tr><td align="center" style="padding:6px 16px 0;' + fonte + 'font-size:13px;color:' + C.texto2 + ';">Depois de pagar, mude o status para <b>Pago</b> na aba Pagamentos.</td></tr>' +
-      // Rodapé
-      '<tr><td align="center" style="padding:24px 16px 0;' + fonte + 'font-size:12px;line-height:1.5;color:' + C.mudo + ';">' +
-        'Lembrete automático da planilha do casamento.<br>Para mudar os dias ou os e-mails, edite a aba Config. Para parar: menu 💍 Casamento → Desativar lembretes.' +
-      '</td></tr>' +
+      '<tr><td align="center" style="padding:8px 0 0;"><table role="presentation" cellpadding="0" cellspacing="0"><tr>' + botoes + '</tr></table></td></tr>' +
     '</table></td></tr></table></body></html>';
 
   // Versão em texto puro
