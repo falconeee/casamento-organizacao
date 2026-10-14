@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <title>Casamento · Finanças</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💍</text></svg>">
-  <link rel="stylesheet" href="styles.css?v=3">
+  <link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
   <header class="topo">
@@ -81,16 +81,28 @@
       </section>
     </div>
 
+    <section class="cartao" aria-labelledby="h-projecao">
+      <div class="cartao-cabecalho">
+        <div>
+          <h2 id="h-projecao">Projeção até o casamento</h2>
+          <p class="descricao">Total pago acumulado e o que já está agendado</p>
+        </div>
+        <ul class="legenda" aria-hidden="true">
+          <li><i class="linha-pago"></i>Pago</li>
+          <li><i class="linha-projecao"></i>Projeção (agendado)</li>
+        </ul>
+      </div>
+      <p id="projecao-resumo" class="resumo-grafico"></p>
+      <div id="grafico-projecao" class="grafico-linha"></div>
+    </section>
+
     <section class="cartao" aria-labelledby="h-mensal">
       <div class="cartao-cabecalho">
         <div>
           <h2 id="h-mensal">Pagamentos por mês</h2>
-          <p class="descricao">Quanto sai em cada mês</p>
+          <p class="descricao">Quanto sai em cada mês e quem paga</p>
         </div>
-        <ul class="legenda" aria-hidden="true">
-          <li><i class="cor-pago"></i>Pago</li>
-          <li><i class="cor-agendado"></i>A pagar</li>
-        </ul>
+        <ul id="leg-mensal" class="legenda" aria-hidden="true"></ul>
       </div>
       <div id="grafico-mensal" class="grafico-colunas"></div>
       <p id="mensal-sem-data" class="nota" hidden></p>
@@ -103,14 +115,49 @@
             <h2 id="h-grupos">Por grupo</h2>
             <p class="descricao">Valor de cada grupo e quanto já foi pago</p>
           </div>
+          <ul class="legenda" aria-hidden="true">
+            <li><i class="cor-pago"></i>Pago</li>
+            <li><i class="cor-agendado"></i>A pagar</li>
+            <li><i class="cor-falta"></i>Falta agendar</li>
+          </ul>
         </div>
         <div id="grafico-grupos" class="barras"></div>
       </section>
 
       <section class="cartao" aria-labelledby="h-pessoas">
-        <h2 id="h-pessoas">Quem paga</h2>
-        <p class="descricao">Já pago e a pagar por pessoa</p>
+        <div class="cartao-cabecalho">
+          <div>
+            <h2 id="h-pessoas">Quem paga</h2>
+            <p class="descricao">Já pago e a pagar por pessoa</p>
+          </div>
+          <ul class="legenda" aria-hidden="true">
+            <li><i class="cor-pago"></i>Pago</li>
+            <li><i class="cor-agendado"></i>A pagar</li>
+          </ul>
+        </div>
         <div id="grafico-pessoas" class="barras"></div>
+      </section>
+    </div>
+
+    <div class="grade">
+      <section class="cartao" aria-labelledby="h-funil">
+        <h2 id="h-funil">Funil de contratação</h2>
+        <p id="funil-resumo" class="descricao">Itens em cada etapa</p>
+        <div id="grafico-funil" class="barras"></div>
+      </section>
+
+      <section class="cartao" aria-labelledby="h-formas">
+        <div class="cartao-cabecalho">
+          <div>
+            <h2 id="h-formas">Formas de pagamento</h2>
+            <p class="descricao">Pago e a pagar por forma</p>
+          </div>
+          <ul class="legenda" aria-hidden="true">
+            <li><i class="cor-pago"></i>Pago</li>
+            <li><i class="cor-agendado"></i>A pagar</li>
+          </ul>
+        </div>
+        <div id="grafico-formas" class="barras"></div>
       </section>
     </div>
 
@@ -148,7 +195,7 @@
 
   <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
 
-  <script src="config.js?v=3"></script>
-  <script src="app.js?v=3"></script>
+  <script src="config.js?v=4"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
