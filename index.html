@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <title>Casamento · Finanças</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💍</text></svg>">
-  <link rel="stylesheet" href="styles.css?v=2">
+  <link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
   <header class="topo">
@@ -46,11 +46,17 @@
         <span id="kpi-pago" class="valor-heroi">—</span>
         <span id="kpi-pago-de" class="sub"></span>
       </div>
-      <div id="meter" class="meter" role="img"></div>
+      <div id="meter-wrap" class="meter-wrap">
+        <div id="meter" class="meter" role="img"></div>
+        <div id="meter-teto" class="meter-teto" hidden><span></span></div>
+      </div>
+      <p id="teto-status" class="teto-status" hidden></p>
       <ul class="legenda" aria-hidden="true">
         <li><i class="cor-pago"></i>Pago</li>
         <li><i class="cor-agendado"></i>A pagar (agendado)</li>
         <li><i class="cor-falta"></i>Falta agendar</li>
+        <li id="leg-folga" hidden><i class="cor-folga"></i>Folga até o teto</li>
+        <li id="leg-teto" hidden><i class="marca-teto"></i>Teto de gastos</li>
       </ul>
     </section>
 
@@ -142,7 +148,7 @@
 
   <div id="tooltip" class="tooltip" role="tooltip" hidden></div>
 
-  <script src="config.js?v=2"></script>
-  <script src="app.js?v=2"></script>
+  <script src="config.js?v=3"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
