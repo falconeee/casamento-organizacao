@@ -225,7 +225,17 @@
       orcamento: somaCampo(ativos.filter((i) => i.status === 'Orçamento' && i.exibido !== 'Quitado'), 'total'),
     };
 
-    return { hoje, itens, pagamentos, tot, config: d.config || {} };
+    // Cor segue a pessoa (nunca a posição): individuais em ordem alfabética, depois "Os dois" e "Não definido".
+    const nomes = [...new Set(pagamentos.map((p) => p.quem))];
+    const conjunto = (n) => /^os dois$/i.test(n);
+    const individuais = nomes.filter((n) => !conjunto(n) && n !== 'Não definido').sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const pessoas = [...individuais, ...nomes.filter(conjunto), ...nomes.filter((n) => n === 'Não definido')];
+    const cores = new Map();
+    individuais.forEach((n, i) => cores.set(n, i < 2 ? 'p' + (i + 1) : 'p0'));
+    nomes.filter(conjunto).forEach((n) => cores.set(n, 'p3'));
+    cores.set('Não definido', 'p0');
+
+    return { hoje, itens, pagamentos, tot, pessoas, cores, config: d.config || {} };
   }
   const soma = (ps) => ps.reduce((s, p) => s + p.valor, 0);
   const somaCampo = (xs, c) => xs.reduce((s, x) => s + (x[c] || 0), 0);
@@ -243,9 +253,12 @@
     renderResumo(m);
     renderProximos(m);
     renderFechar(m);
+    renderProjecao(m);
     renderMensal(m);
     renderGrupos(m);
     renderPessoas(m);
+    renderFunil(m);
+    renderFormas(m);
     preencherFiltros(m);
     renderTabela();
   }
@@ -411,6 +424,195 @@
     return 10 * p;
   }
 
+  // ---------- projeção acumulada ----------
+  function renderProjecao(m) {
+    const el = $('grafico-projecao');
+    const resumo = $('projecao-resumo');
+    const t = m.tot;
+    const chave = (d) => d.getFullYear() * 12 + d.getMonth();
+    const atual = chave(m.hoje);
+    const casamento = parseData(m.config.dataCasamento);
+    const teto = num(m.config.orcamentoMaximo);
+    const datados = m.pagamentos.filter((p) => p.data);
+    // Pagos sem data já saíram do bolso: entram como ponto de partida.
+    const base = soma(m.pagamentos.filter((p) => p.pago && !p.data));
+    const semDataAPagar = soma(m.pagamentos.filter((p) => !p.pago && !p.data));
+
+    const ks = datados.map((p) => chave(p.data));
+    const ini = Math.min(atual, ...ks);
+    const fim = Math.max(atual, casamento ? chave(casamento) : atual, ...ks);
+    const n = fim - ini + 1;
+    const pagoMes = new Array(n).fill(0);
+    const aPagarMes = new Array(n).fill(0);
+    datados.forEach((p) => {
+      // Vencidos e não pagos contam no mês atual: ainda vão sair.
+      const i = (p.pago ? chave(p.data) : Math.max(chave(p.data), atual)) - ini;
+      (p.pago ? pagoMes : aPagarMes)[i] += p.valor;
+    });
+    const iAtual = atual - ini;
+    const acumPago = [];
+    let s = base;
+    for (let i = 0; i <= iAtual; i++) { s += pagoMes[i]; acumPago.push(s); }
+    const proj = [];
+    let sp = acumPago[iAtual];
+    for (let i = iAtual; i < n; i++) { sp += aPagarMes[i]; proj.push(sp); }
+    const projFinal = proj[proj.length - 1];
+
+    // Frase-resumo
+    const iCas = casamento ? chave(casamento) - ini : null;
+    let ateCasamento = acumPago[iAtual];
+    if (casamento) {
+      m.pagamentos.forEach((p) => { if (!p.pago && p.data && p.data <= casamento) ateCasamento += p.valor; });
+    }
+    const depois = casamento ? soma(m.pagamentos.filter((p) => !p.pago && p.data && p.data > casamento)) : 0;
+    const partes = [];
+    if (casamento) {
+      partes.push('Seguindo o que está agendado, até o casamento vocês terão pago <b>' + moeda(ateCasamento) + '</b> (' +
+        pct(t.total ? ateCasamento / t.total : 0) + ' do orçamento).');
+    } else {
+      partes.push('Seguindo o que está agendado, vocês chegam a <b>' + moeda(projFinal) + '</b> pagos. Preencha a data do casamento na aba Config para ver a marca no gráfico.');
+    }
+    const fora = [];
+    if (t.falta > 0.005) fora.push(moeda(t.falta) + ' sem pagamento marcado');
+    if (semDataAPagar > 0.005) fora.push(moeda(semDataAPagar) + ' a pagar sem data');
+    if (depois > 0.005) fora.push(moeda(depois) + ' agendado para depois do casamento');
+    if (fora.length) partes.push('Fora da projeção: ' + fora.join(', ') + '.');
+    resumo.innerHTML = partes.join(' ');
+
+    // Geometria
+    const W = Math.max(300, el.clientWidth);
+    const H = 250;
+    const mg = { l: 52, r: 12, t: 22, b: 30 };
+    const pw = W - mg.l - mg.r;
+    const ph = H - mg.t - mg.b;
+    const maxV = Math.max(t.total, teto, projFinal, 1);
+    const passo = passoBonito(maxV, 4);
+    const topo = Math.ceil((maxV * 1.04) / passo) * passo;
+    const x = (i) => mg.l + (n === 1 ? pw / 2 : (i / (n - 1)) * pw);
+    const y = (v) => mg.t + ph * (1 - v / topo);
+    const f = (v) => v.toFixed(1);
+
+    let svg = '';
+    for (let v = 0; v <= topo + 0.001; v += passo) {
+      svg += '<line x1="' + mg.l + '" x2="' + (W - mg.r) + '" y1="' + f(y(v)) + '" y2="' + f(y(v)) + '" class="' + (v === 0 ? 'eixo-base' : 'grade') + '"/>' +
+        '<text x="' + (mg.l - 6) + '" y="' + f(y(v) + 4) + '" class="rot-y">' + moedaCurta(v) + '</text>';
+    }
+    // Rótulos do eixo X sem colisão
+    const cabe = Math.max(1, Math.floor(pw / 52));
+    const pulo = Math.ceil(n / cabe);
+    for (let i = 0; i < n; i++) {
+      const k = ini + i;
+      // Mostra o mês atual sempre; os demais a cada `pulo`, sem encostar no atual.
+      if (i !== iAtual && (i % pulo !== 0 || Math.abs(i - iAtual) < Math.max(1, pulo * 0.75))) continue;
+      const noFim = x(i) > W - mg.r - 18;
+      svg += '<text x="' + f(noFim ? W - 2 : x(i)) + '" y="' + (H - 10) + '" class="rot-x' + (i === iAtual ? ' atual' : '') + (noFim ? ' fim' : '') + '">' + MESES[k % 12] + '/' + String(Math.floor(k / 12)).slice(2) + '</text>';
+    }
+    // Linhas de referência: orçamento total e teto
+    const refs = [{ v: t.total, nome: 'Orçamento ' + moeda(t.total), cls: 'ref-orcamento' }];
+    if (teto > 0) refs.push({ v: teto, nome: 'Teto ' + moeda(teto), cls: 'ref-teto' });
+    refs.sort((a, b) => b.v - a.v);
+    refs.forEach((r, j) => {
+      const yy = y(r.v);
+      // Se as duas linhas estão muito próximas, o rótulo de baixo vai para baixo da linha.
+      const abaixo = j === 1 && Math.abs(y(refs[0].v) - yy) < 16;
+      svg += '<line x1="' + mg.l + '" x2="' + (W - mg.r) + '" y1="' + f(yy) + '" y2="' + f(yy) + '" class="' + r.cls + '"/>' +
+        '<text x="' + (W - mg.r) + '" y="' + f(abaixo ? yy + 13 : yy - 5) + '" class="rot-ref">' + esc(r.nome) + '</text>';
+    });
+    // Casamento
+    if (casamento && iCas >= 0 && iCas < n) {
+      const xc = x(iCas);
+      svg += '<line x1="' + f(xc) + '" x2="' + f(xc) + '" y1="' + (mg.t - 8) + '" y2="' + (H - mg.b) + '" class="ref-casamento"/>' +
+        '<text x="' + f(xc) + '" y="' + (mg.t - 11) + '" class="rot-casamento' + (xc > W - 70 ? ' fim' : '') + '">💍 Casamento</text>';
+    }
+    // Área + linha do pago, linha da projeção
+    const ptsPago = acumPago.map((v, i) => f(x(i)) + ',' + f(y(v)));
+    if (acumPago.length > 1) {
+      svg += '<path class="area-pago" d="M' + f(x(0)) + ',' + f(y(0)) + ' L' + ptsPago.join(' L') + ' L' + f(x(iAtual)) + ',' + f(y(0)) + 'Z"/>';
+    }
+    svg += '<polyline class="linha-pago" points="' + ptsPago.join(' ') + '"/>';
+    if (proj.length > 1) {
+      const ptsProj = [f(x(iAtual)) + ',' + f(y(acumPago[iAtual]))].concat(proj.slice(1).map((v, j) => f(x(iAtual + 1 + j)) + ',' + f(y(v))));
+      svg += '<polyline class="linha-projecao" points="' + ptsProj.join(' ') + '"/>';
+      svg += '<circle class="ponto-projecao" cx="' + f(x(n - 1)) + '" cy="' + f(y(projFinal)) + '" r="4"/>';
+      svg += '<text x="' + f(x(n - 1) - 8) + '" y="' + f(y(projFinal) - 9) + '" class="rot-ponto fim">' + moeda(projFinal) + '</text>';
+    }
+    svg += '<circle class="ponto-pago" cx="' + f(x(iAtual)) + '" cy="' + f(y(acumPago[iAtual])) + '" r="4"/>';
+    const xHoje = x(iAtual);
+    svg += '<text x="' + f(xHoje + (xHoje > W - 140 ? -8 : 8)) + '" y="' + f(y(acumPago[iAtual]) + 18) + '" class="rot-ponto' + (xHoje > W - 140 ? ' fim' : '') + '">Hoje: ' + moeda(acumPago[iAtual]) + '</text>';
+    // Mira (crosshair) e alvo de hover
+    svg += '<line class="mira" x1="0" x2="0" y1="' + mg.t + '" y2="' + (H - mg.b) + '" visibility="hidden"/>' +
+      '<rect class="alvo" x="' + mg.l + '" y="0" width="' + pw + '" height="' + H + '" tabindex="0"/>';
+
+    el.innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Projeção do valor pago acumulado: hoje ' +
+      moeda(acumPago[iAtual]) + ', projeção final ' + moeda(projFinal) + '">' + svg + '</svg>';
+
+    const alvo = el.querySelector('.alvo');
+    const mira = el.querySelector('.mira');
+    const indice = (ev) => {
+      if (!ev || ev.clientX == null || ev.type === 'focusin') return iAtual;
+      const r = el.querySelector('svg').getBoundingClientRect();
+      const px = ev.clientX - r.left;
+      return Math.max(0, Math.min(n - 1, Math.round(n === 1 ? 0 : ((px - mg.l) / pw) * (n - 1))));
+    };
+    tooltip(alvo, (ev) => {
+      const i = indice(ev);
+      mira.setAttribute('x1', x(i)); mira.setAttribute('x2', x(i)); mira.setAttribute('visibility', 'visible');
+      const k = ini + i;
+      const linhas = [];
+      if (i <= iAtual) linhas.push(['pago', i === iAtual ? 'Pago até hoje' : 'Pago acumulado', acumPago[i]]);
+      if (i >= iAtual && proj.length > 1) linhas.push(['agendado', 'Projeção acumulada', proj[i - iAtual]]);
+      const doMes = pagoMes[i] + aPagarMes[i];
+      return linhasTT(MESES[k % 12] + '/' + Math.floor(k / 12) + (casamento && i === iCas ? ' · 💍' : ''), linhas) +
+        '<div class="tt-nota">' + (doMes > 0 ? moeda(doMes) + ' neste mês' : 'Nenhum pagamento neste mês') + '</div>';
+    });
+    alvo.addEventListener('pointerleave', () => mira.setAttribute('visibility', 'hidden'));
+    alvo.addEventListener('blur', () => mira.setAttribute('visibility', 'hidden'));
+  }
+
+  // ---------- funil de contratação ----------
+  function renderFunil(m) {
+    const etapas = ['A definir', 'Orçamento', 'Contratado', 'Quitado'];
+    const ativos = m.itens.filter((i) => i.exibido !== 'Cancelado');
+    const linhas = etapas.map((e) => {
+      const its = ativos.filter((i) => i.exibido === e);
+      return { nome: e, n: its.length, valor: somaCampo(its, 'total'), itens: its };
+    });
+    const fechados = linhas[2].n + linhas[3].n;
+    const cancelados = m.itens.length - ativos.length;
+    $('funil-resumo').textContent = fechados + ' de ' + ativos.length + ' itens com contrato (' + pct(ativos.length ? fechados / ativos.length : 0) + ')' +
+      (cancelados ? ' · ' + cancelados + ' cancelado' + (cancelados === 1 ? '' : 's') : '');
+    const max = Math.max(1, ...linhas.map((l) => l.n));
+    const el = $('grafico-funil');
+    el.innerHTML = linhas.map((l, i) =>
+      '<div class="barra-linha"><div class="barra-rotulo">' + selo(l.nome) + '</div>' +
+      '<div class="barra-trilho" data-i="' + i + '">' + (l.n ? '<div style="flex:0 1 ' + (l.n / max) * 100 + '%;background:var(--funil)"></div>' : '') + '</div>' +
+      '<div class="barra-valor">' + l.n + (l.n === 1 ? ' item' : ' itens') + (l.valor ? ' · ' + moeda(l.valor) : '') + '</div></div>').join('');
+    el.querySelectorAll('.barra-trilho').forEach((tr) => {
+      const l = linhas[+tr.dataset.i];
+      tooltip(tr, () => '<b>' + esc(l.nome) + ' · ' + l.n + (l.n === 1 ? ' item' : ' itens') + '</b>' +
+        (l.itens.slice(0, 8).map((i) => '<div class="tt-linha"><span>' + esc(i.item) + '</span><span>' + (i.total ? moeda(i.total) : '—') + '</span></div>').join('') +
+        (l.itens.length > 8 ? '<div class="tt-nota">e mais ' + (l.itens.length - 8) + '</div>' : '') || '<div class="tt-nota">Nenhum item</div>'));
+    });
+  }
+
+  // ---------- formas de pagamento ----------
+  function renderFormas(m) {
+    const g = new Map();
+    m.pagamentos.forEach((p) => {
+      const nome = p.forma || 'Não informada';
+      const x = g.get(nome) || { nome, pago: 0, aPagar: 0, n: 0 };
+      x[p.pago ? 'pago' : 'aPagar'] += p.valor;
+      x.n++;
+      g.set(nome, x);
+    });
+    const linhas = [...g.values()].sort((a, b) => (b.pago + b.aPagar) - (a.pago + a.aPagar))
+      .map((x) => ({ ...x, partes: [{ cor: 'pago', nome: 'Pago', v: x.pago }, { cor: 'agendado', nome: 'A pagar', v: x.aPagar }] }));
+    const total = Math.max(1, ...linhas.map((l) => l.pago + l.aPagar));
+    const soma_ = linhas.reduce((s, l) => s + l.pago + l.aPagar, 0);
+    barras($('grafico-formas'), linhas, total, (l) => moeda(l.pago + l.aPagar) + ' · ' + pct(soma_ ? (l.pago + l.aPagar) / soma_ : 0) +
+      ' · ' + l.n + (l.n === 1 ? ' pagamento' : ' pagamentos'));
+  }
+
   function renderMensal(m) {
     const el = $('grafico-mensal');
     const datados = m.pagamentos.filter((p) => p.data);
@@ -425,12 +627,15 @@
     let ini = Math.min(atual, ...datados.map((p) => chave(p.data)));
     const fim = Math.max(atual, ...datados.map((p) => chave(p.data)));
     const meses = [];
-    for (let k = ini; k <= fim; k++) meses.push({ k, pago: 0, aPagar: 0, itens: [] });
+    for (let k = ini; k <= fim; k++) meses.push({ k, pago: 0, aPagar: 0, porPessoa: new Map(), itens: [] });
     datados.forEach((p) => {
       const b = meses[chave(p.data) - ini];
       b[p.pago ? 'pago' : 'aPagar'] += p.valor;
+      b.porPessoa.set(p.quem, (b.porPessoa.get(p.quem) || 0) + p.valor);
       b.itens.push(p);
     });
+    const presentes = m.pessoas.filter((n) => meses.some((b) => b.porPessoa.has(n)));
+    $('leg-mensal').innerHTML = presentes.map((n) => '<li><i style="background:var(--' + m.cores.get(n) + ')"></i>' + esc(n) + '</li>').join('');
     const maxV = Math.max(...meses.map((b) => b.pago + b.aPagar));
     const passo = passoBonito(maxV, 4);
     const topo = Math.ceil(maxV / passo) * passo || passo;
@@ -445,8 +650,8 @@
     const cols = meses.map((b, i) => {
       const h = (v) => (v / topo) * 100;
       return '<div class="coluna" data-i="' + i + '" tabindex="0"><div class="coluna-pilha" style="height:' + h(b.pago + b.aPagar) + '%">' +
-        (b.pago > 0 ? '<div style="flex:' + b.pago + ' 0 0;background:var(--pago)"></div>' : '') +
-        (b.aPagar > 0 ? '<div style="flex:' + b.aPagar + ' 0 0;background:var(--agendado)"></div>' : '') +
+        presentes.filter((n) => b.porPessoa.get(n) > 0).map((n) =>
+          '<div style="flex:' + b.porPessoa.get(n) + ' 0 0;background:var(--' + m.cores.get(n) + ')"></div>').join('') +
         '</div></div>';
     }).join('');
     const rotulos = meses.map((b) => '<span class="' + (b.k === atual ? 'atual' : '') + '">' + MESES[b.k % 12] + '<br>' + String(Math.floor(b.k / 12)).slice(2) + '</span>').join('');
@@ -458,7 +663,9 @@
       const b = meses[+c.dataset.i];
       const titulo = MESES[b.k % 12] + '/' + Math.floor(b.k / 12);
       tooltip(c, () => {
-        const linhas = linhasTT(titulo + ' · ' + moeda(b.pago + b.aPagar), [['pago', 'Pago', b.pago], ['agendado', 'A pagar', b.aPagar]]);
+        const linhas = linhasTT(titulo + ' · ' + moeda(b.pago + b.aPagar),
+          presentes.filter((n) => b.porPessoa.get(n) > 0).map((n) => [m.cores.get(n), n, b.porPessoa.get(n)])) +
+          '<div class="tt-nota">' + (b.aPagar > 0.005 ? (b.pago > 0.005 ? moeda(b.pago) + ' pago · ' + moeda(b.aPagar) + ' a pagar' : 'A pagar') : 'Pago') + '</div>';
         const top = b.itens.slice().sort((x, y) => y.valor - x.valor).slice(0, 4)
           .map((p) => '<div class="tt-linha"><span>' + esc(p.item) + '</span><span>' + moeda(p.valor) + '</span></div>').join('');
         return linhas + (top ? '<div style="border-top:1px solid var(--grid);margin-top:6px;padding-top:6px">' + top + '</div>' : '');
@@ -471,7 +678,8 @@
 
   function barras(container, linhas, maximo, textoValor) {
     container.innerHTML = linhas.map((l, i) =>
-      '<div class="barra-linha"><div class="barra-rotulo" title="' + esc(l.nome) + '">' + esc(l.nome) + '</div>' +
+      '<div class="barra-linha"><div class="barra-rotulo" title="' + esc(l.nome) + '">' +
+      (l.ponto ? '<i class="ponto" style="background:var(--' + l.ponto + ')"></i>' : '') + esc(l.nome) + '</div>' +
       '<div class="barra-trilho" data-i="' + i + '">' + segmentos(l.partes, maximo) + '</div>' +
       '<div class="barra-valor">' + textoValor(l) + '</div></div>').join('') || '<p class="vazio">Sem dados.</p>';
     container.querySelectorAll('.barra-trilho').forEach((t) => {
@@ -503,7 +711,7 @@
       g.set(p.quem, x);
     });
     const linhas = [...g.values()].sort((a, b) => (a.nome === 'Não definido') - (b.nome === 'Não definido') || (b.pago + b.aPagar) - (a.pago + a.aPagar))
-      .map((x) => ({ ...x, partes: [{ cor: 'pago', nome: 'Pago', v: x.pago }, { cor: 'agendado', nome: 'A pagar', v: x.aPagar }] }));
+      .map((x) => ({ ...x, ponto: m.cores.get(x.nome), partes: [{ cor: 'pago', nome: 'Pago', v: x.pago }, { cor: 'agendado', nome: 'A pagar', v: x.aPagar }] }));
     const max = Math.max(0, ...linhas.map((l) => l.pago + l.aPagar));
     barras($('grafico-pessoas'), linhas, max, (l) => moeda(l.pago) + ' pago · ' + moeda(l.aPagar) + ' a pagar');
   }
@@ -642,7 +850,8 @@
   document.addEventListener('pointermove', (ev) => {
     const alvo = alvoTT(ev.target);
     if (!alvo) { if (ev.pointerType === 'mouse') { tt.hidden = true; ttAlvo = null; } return; }
-    if (alvo !== ttAlvo) { tt.innerHTML = ttFns.get(alvo)(); ttAlvo = alvo; }
+    tt.innerHTML = ttFns.get(alvo)(ev);
+    ttAlvo = alvo;
     tt.hidden = false;
     posicionarTT(ev.clientX, ev.clientY);
   });
@@ -650,17 +859,27 @@
     if (ev.pointerType === 'mouse') return;
     const alvo = alvoTT(ev.target);
     if (!alvo) { tt.hidden = true; ttAlvo = null; return; }
-    tt.innerHTML = ttFns.get(alvo)(); ttAlvo = alvo; tt.hidden = false;
+    tt.innerHTML = ttFns.get(alvo)(ev); ttAlvo = alvo; tt.hidden = false;
     posicionarTT(ev.clientX, ev.clientY);
   });
   document.addEventListener('focusin', (ev) => {
     const alvo = alvoTT(ev.target);
     if (!alvo) { tt.hidden = true; return; }
-    tt.innerHTML = ttFns.get(alvo)(); tt.hidden = false;
+    tt.innerHTML = ttFns.get(alvo)(ev); tt.hidden = false;
     const r = alvo.getBoundingClientRect();
     posicionarTT(r.left + r.width / 2, r.top);
   });
   window.addEventListener('scroll', () => { tt.hidden = true; ttAlvo = null; }, { passive: true });
+
+  // A projeção é SVG em pixels: redesenha quando a largura muda.
+  let timerResize = null;
+  let larguraAnterior = innerWidth;
+  window.addEventListener('resize', () => {
+    if (innerWidth === larguraAnterior) return;
+    larguraAnterior = innerWidth;
+    clearTimeout(timerResize);
+    timerResize = setTimeout(() => { if (estado.modelo) renderProjecao(estado.modelo); }, 150);
+  });
 
   // ---------- início ----------
   $('btn-atualizar').addEventListener('click', carregar);

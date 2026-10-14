@@ -20,6 +20,11 @@
   --critical: #d03b3b;
   --critical-text: #b32727;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --p1: #4a3aa7;
+  --p2: #eb6834;
+  --p3: #1baf7a;
+  --p0: #a3a29b;
+  --funil: #898781;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -41,6 +46,11 @@
     --warning-text: #fab219;
     --critical-text: #ef6b6b;
     --shadow: none;
+    --p1: #9085e9;
+    --p2: #d95926;
+    --p3: #199e70;
+    --p0: #6b6a65;
+    --funil: #8f8d86;
   }
 }
 :root[data-theme="dark"] {
@@ -62,6 +72,11 @@
   --warning-text: #fab219;
   --critical-text: #ef6b6b;
   --shadow: none;
+  --p1: #9085e9;
+  --p2: #d95926;
+  --p3: #199e70;
+  --p0: #6b6a65;
+  --funil: #8f8d86;
 }
 
 * { box-sizing: border-box; }
@@ -291,3 +306,40 @@ input, select {
 @media (forced-colors: active) {
   .meter > div, .barra-trilho > div, .coluna-pilha > div, .mini-meter > div { border: 1px solid CanvasText; }
 }
+
+/* Pontos de identidade (pessoa) e notas de tooltip */
+.ponto { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 1px; }
+.tt-nota { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--grid); color: var(--muted); font-size: 12px; }
+.barra-rotulo .selo { font-size: 12px; }
+
+/* Projeção (SVG) */
+.resumo-grafico { margin: 0 0 12px; font-size: 14px; color: var(--text-2); }
+.resumo-grafico b { color: var(--text); font-weight: 600; }
+.grafico-linha { width: 100%; }
+.grafico-linha svg { display: block; overflow: visible; }
+.grafico-linha .grade { stroke: var(--grid); stroke-width: 1; }
+.grafico-linha .eixo-base { stroke: var(--baseline); stroke-width: 1; }
+.grafico-linha text { font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.grafico-linha .rot-y { text-anchor: end; }
+.grafico-linha .rot-x { text-anchor: middle; }
+.grafico-linha .rot-x.fim { text-anchor: end; }
+.grafico-linha .rot-x.atual { fill: var(--text); font-weight: 600; }
+.grafico-linha .ref-orcamento { stroke: var(--text-2); stroke-width: 1; opacity: 0.7; }
+.grafico-linha .ref-teto { stroke: var(--text); stroke-width: 1.5; }
+.grafico-linha .rot-ref { text-anchor: end; fill: var(--text-2); font-size: 12px; }
+.grafico-linha .ref-casamento { stroke: var(--text-2); stroke-width: 1; }
+.grafico-linha .rot-casamento { text-anchor: middle; fill: var(--text); font-size: 12px; font-weight: 500; }
+.grafico-linha .rot-casamento.fim { text-anchor: end; }
+.grafico-linha .area-pago { fill: var(--pago); opacity: 0.1; }
+.grafico-linha .linha-pago, .grafico-linha .linha-projecao { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.grafico-linha .linha-pago { stroke: var(--pago); }
+.grafico-linha .linha-projecao { stroke: var(--agendado); }
+.grafico-linha .ponto-pago { fill: var(--pago); stroke: var(--surface); stroke-width: 2; }
+.grafico-linha .ponto-projecao { fill: var(--agendado); stroke: var(--surface); stroke-width: 2; }
+.grafico-linha .rot-ponto { fill: var(--text); font-size: 12px; font-weight: 600; }
+.grafico-linha .rot-ponto.fim { text-anchor: end; }
+.grafico-linha .mira { stroke: var(--baseline); stroke-width: 1; pointer-events: none; }
+.grafico-linha .alvo { fill: transparent; cursor: crosshair; outline: none; }
+.legenda i.linha-pago, .legenda i.linha-projecao { width: 14px; height: 2px; border-radius: 1px; }
+.legenda i.linha-pago { background: var(--pago); }
+.legenda i.linha-projecao { background: var(--agendado); }
