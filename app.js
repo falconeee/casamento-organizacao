@@ -158,9 +158,20 @@
   function atualizarCarimbo() {
     const el = $('atualizado');
     if (!estado.carregadoEm) { el.textContent = ''; return; }
-    const min = Math.floor((Date.now() - estado.carregadoEm) / 60000);
-    el.textContent = min < 1 ? 'Atualizado agora' : 'Atualizado há ' + min + ' min';
+    el.textContent = 'Atualizado ' + tempoDesde(Date.now() - estado.carregadoEm);
     el.title = estado.carregadoEm.toLocaleString('pt-BR');
+  }
+
+  // 45 min · 1h e 5 min · 2 dias e 3 horas
+  function tempoDesde(ms) {
+    const min = Math.floor(ms / 60000);
+    if (min < 1) return 'agora';
+    if (min < 60) return 'há ' + min + ' min';
+    const h = Math.floor(min / 60);
+    if (h < 24) return 'há ' + h + 'h' + (min % 60 ? ' e ' + (min % 60) + ' min' : '');
+    const dias = Math.floor(h / 24);
+    const horas = h % 24;
+    return 'há ' + dias + (dias === 1 ? ' dia' : ' dias') + (horas ? ' e ' + horas + (horas === 1 ? ' hora' : ' horas') : '');
   }
 
   // ---------- modelo ----------
@@ -256,21 +267,52 @@
 
   function segmentos(partes, base) {
     return partes.filter((p) => p.v > 0).map((p) =>
-      '<div style="flex:0 1 ' + (base > 0 ? (p.v / base) * 100 : 0) + '%;background:var(--' + p.cor + ')"></div>').join('');
+      '<div class="seg-' + p.cor + '" style="flex:0 1 ' + (base > 0 ? (p.v / base) * 100 : 0) + '%;background:var(--' + p.cor + ')"></div>').join('');
   }
 
   function renderResumo(m) {
     const t = m.tot;
+    const teto = num(m.config.orcamentoMaximo);
     $('kpi-pago').textContent = moeda(t.pago);
     $('kpi-pago-de').textContent = 'de ' + moeda(t.total) + (t.total > 0 ? ' (' + pct(t.pago / t.total) + ')' : '');
 
+    // Com teto, a barra vai até o maior entre total e teto: sobra vira "folga"; excesso passa da marca.
+    const escala = teto > 0 ? Math.max(t.total, teto) : t.total;
+    const folga = teto > t.total ? teto - t.total : 0;
     const meter = $('meter');
-    meter.innerHTML = segmentos([{ v: t.pago, cor: 'pago' }, { v: t.agendado, cor: 'agendado' }, { v: t.falta, cor: 'falta' }], t.total);
-    meter.setAttribute('aria-label', 'Pago ' + moeda(t.pago) + ', a pagar ' + moeda(t.agendado) + ', falta agendar ' + moeda(t.falta));
-    tooltip(meter, () => linhasTT('Orçamento total ' + moeda(t.total), [
-      ['pago', 'Pago', t.pago], ['agendado', 'A pagar', t.agendado], ['falta', 'Falta agendar', t.falta]]));
+    meter.innerHTML = segmentos([{ v: t.pago, cor: 'pago' }, { v: t.agendado, cor: 'agendado' }, { v: t.falta, cor: 'falta' }, { v: folga, cor: 'folga' }], escala);
+    meter.setAttribute('aria-label', 'Pago ' + moeda(t.pago) + ', a pagar ' + moeda(t.agendado) + ', falta agendar ' + moeda(t.falta) +
+      (teto > 0 ? ', teto de gastos ' + moeda(teto) : ''));
 
-    const teto = num(m.config.orcamentoMaximo);
+    const marca = $('meter-teto');
+    const status = $('teto-status');
+    marca.hidden = !(teto > 0);
+    status.hidden = !(teto > 0);
+    $('meter-wrap').classList.toggle('com-teto', teto > 0);
+    $('leg-teto').hidden = !(teto > 0);
+    $('leg-folga').hidden = !(folga > 0);
+    if (teto > 0) {
+      const pos = (teto / escala) * 100;
+      marca.style.left = pos + '%';
+      marca.classList.toggle('a-direita', pos > 75);
+      marca.querySelector('span').textContent = 'Teto ' + moeda(teto);
+      const acima = t.total - teto;
+      status.className = 'teto-status ' + (acima > 0.005 ? 'acima' : 'abaixo');
+      status.innerHTML = acima > 0.005
+        ? '<span aria-hidden="true">▲</span> ' + moeda(acima) + ' acima do teto (' + pct(t.total / teto) + ' do teto)'
+        : '<span aria-hidden="true">✓</span> ' + moeda(-acima) + ' de folga até o teto (' + pct(t.total / teto) + ' do teto usado)';
+    }
+    tooltip(meter, () => {
+      let html = linhasTT('Orçamento total ' + moeda(t.total), [
+        ['pago', 'Pago', t.pago], ['agendado', 'A pagar', t.agendado], ['falta', 'Falta agendar', t.falta]]);
+      if (teto > 0) {
+        html += '<div style="border-top:1px solid var(--grid);margin-top:6px;padding-top:6px">' +
+          '<div class="tt-linha"><span>Teto de gastos</span><span>' + moeda(teto) + '</span></div>' +
+          '<div class="tt-linha"><span>' + (t.total > teto ? 'Acima do teto' : 'Folga') + '</span><span>' + moeda(Math.abs(teto - t.total)) + '</span></div></div>';
+      }
+      return html;
+    });
+
     $('kpi-total').textContent = moeda(t.total);
     $('kpi-total-sub').textContent = moeda(t.contratado) + ' contratado · ' + moeda(t.orcamento) + ' em orçamento' +
       (teto > 0 ? ' · teto ' + moeda(teto) + (t.total > teto ? ' (acima!)' : '') : '');
