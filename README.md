@@ -1,20 +1,20 @@
-# Casamento · Finanças
+# Wedding · Finances
 
-Dashboard das finanças do casamento. Os dados vêm de uma planilha Google, por uma API no Apps Script protegida por token, e a página é publicada no GitHub Pages.
+Dashboard for the wedding finances. The data comes from a Google Sheet through a token-protected Apps Script API, and the page is published on GitHub Pages.
 
-- **Passo a passo de implantação e uso:** [INSTRUCOES.md](INSTRUCOES.md)
-- **Ver com dados fictícios:** abra `index.html?demo` (ex.: `python3 -m http.server` e depois `http://localhost:8000/?demo`)
+- **Step-by-step deployment and usage guide:** [SETUP.md](SETUP.md)
+- **View with sample data:** open `index.html?demo` (e.g. `python3 -m http.server`, then `http://localhost:8000/?demo`)
 
-## Estrutura
+## Structure
 
-| Arquivo | O que é |
+| File | What it is |
 |---|---|
-| `index.html`, `styles.css`, `app.js` | Dashboard (estático, sem build, sem dependências) |
-| `config.js` | URL da API (não é segredo) |
-| `sample-data.json` | Dados fictícios para o modo `?demo` |
-| `apps-script/Setup.gs` | Cria as abas, listas suspensas, fórmulas e formatação na planilha |
-| `apps-script/Api.gs` | `doGet` que devolve o JSON (exige `?token=`) |
-| `apps-script/Lembretes.gs` | E-mail diário consolidado com os pagamentos dos próximos dias |
-| `apps-script/Migracao.gs` | Dados reais migrados da planilha antiga (**fora do git**) |
+| `index.html`, `styles.css`, `app.js` | Dashboard (static, no build step, no dependencies) |
+| `config.js` | API URL (not a secret) |
+| `sample-data.json` | Sample data for `?demo` mode |
+| `apps-script/Setup.gs` | Creates the tabs, dropdown lists, formulas and formatting in the spreadsheet |
+| `apps-script/Api.gs` | `doGet` that returns the JSON (requires `?token=`) |
+| `apps-script/Lembretes.gs` | Daily consolidated e-mail with the payments due in the next few days |
+| `apps-script/Migracao.gs` | Real data migrated from the old spreadsheet (**not in git**) |
 
-Nenhum valor real nem o token ficam neste repositório.
+No real values and no token are stored in this repository.

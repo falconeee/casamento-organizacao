@@ -115,7 +115,7 @@
       url = 'sample-data.json';
     } else {
       if (!CFG.apiUrl) {
-        avisar('Configure a URL da API em config.js (veja INSTRUCOES.md). Para ver um exemplo, abra com ?demo no endereço.', true);
+        avisar('Configure a URL da API em config.js (veja SETUP.md). Para ver um exemplo, abra com ?demo no endereço.', true);
         return;
       }
       const token = store.get(LS.token);
