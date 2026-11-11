@@ -182,6 +182,8 @@
       const it = {
         item: String(i.item), grupo: i.grupo || 'Outros', fornecedor: i.fornecedor || '',
         status: i.status || 'A definir', valor: num(i.valor), contato: i.contato || '', obs: i.obs || '',
+        contratos: (Array.isArray(i.contratos) ? i.contratos : [])
+          .filter((c) => c && /^https:\/\//i.test(c.url)).map((c) => ({ url: c.url, nome: c.nome || 'Contrato' })),
         pagamentos: [],
       };
       porItem.set(it.item, it);
@@ -197,7 +199,7 @@
     pagamentos.forEach((p) => {
       let it = porItem.get(p.item);
       if (!it) {
-        it = { item: p.item, grupo: 'Outros', fornecedor: '', status: 'Contratado', valor: 0, contato: '', obs: 'Item não cadastrado na aba Itens', pagamentos: [] };
+        it = { item: p.item, grupo: 'Outros', fornecedor: '', status: 'Contratado', valor: 0, contato: '', obs: 'Item não cadastrado na aba Itens', contratos: [], pagamentos: [] };
         porItem.set(p.item, it);
         itens.push(it);
       }
@@ -761,7 +763,7 @@
     tbody.innerHTML = linhas.map((i) => {
       const aberto = estado.abertos.has(i.item);
       let html = '<tr class="item-linha" tabindex="0" aria-expanded="' + aberto + '" data-item="' + esc(i.item) + '">' +
-        '<td>' + esc(i.item) + (i.vencido ? ' <span class="selo vencido" title="Tem pagamento vencido">!</span>' : '') +
+        '<td>' + esc(i.item) + linkContrato(i) + (i.vencido ? ' <span class="selo vencido" title="Tem pagamento vencido">!</span>' : '') +
         '<span class="forn">' + esc(i.fornecedor || '—') + ' · ' + esc(i.grupo) + '</span><span class="so-mobile">' + selo(i.exibido) + '</span></td>' +
         '<td class="col-status">' + selo(i.exibido) + '</td>' +
         '<td class="num">' + (i.total ? moeda(i.total) : '—') + '</td>' +
@@ -787,6 +789,29 @@
     });
   }
 
+  const ICONE_DOC = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">' +
+    '<path d="M4 1.5h5L12.5 5v9a.5.5 0 0 1-.5.5H4a.5.5 0 0 1-.5-.5V2a.5.5 0 0 1 .5-.5z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>' +
+    '<path d="M9 1.5V5h3.5M5.5 8h5M5.5 10.5h5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>';
+
+  function linkContrato(i) {
+    if (!i.contratos.length) return '';
+    const n = i.contratos.length;
+    return ' <a class="doc" href="' + esc(i.contratos[0].url) + '" target="_blank" rel="noopener noreferrer" ' +
+      'title="' + (n > 1 ? 'Abrir contrato (' + n + ' arquivos — veja todos ao expandir)' : 'Abrir contrato') + '" ' +
+      'aria-label="Abrir contrato de ' + esc(i.item) + '">' + ICONE_DOC + (n > 1 ? '<span class="doc-n">' + n + '</span>' : '') + '</a>';
+  }
+
+  function contratosDoItem(i) {
+    if (i.contratos.length) {
+      return '<p class="contratos">' + ICONE_DOC + '<span>Contrato' + (i.contratos.length > 1 ? 's' : '') + ':</span> ' +
+        i.contratos.map((c) => '<a href="' + esc(c.url) + '" target="_blank" rel="noopener noreferrer">' + esc(c.nome) + ' ↗</a>').join('') + '</p>';
+    }
+    if (i.status === 'Contratado' || i.exibido === 'Quitado') {
+      return '<p class="contratos sem">' + ICONE_DOC + '<span>Contrato assinado não anexado</span></p>';
+    }
+    return '';
+  }
+
   function detalheItem(i) {
     const info = [i.contato && 'Contato: ' + esc(i.contato), i.obs && esc(i.obs)].filter(Boolean).join(' · ');
     const pags = i.pagamentos.length
@@ -796,7 +821,7 @@
           (p.pago ? '<span class="selo quitado">✓ Pago</span>' : p.vencido ? '<span class="selo vencido">! Vencido</span>' : '<span class="selo">A pagar</span>') +
           '</td><td class="num">' + moeda(p.valor) + '</td></tr>').join('') + '</tbody></table>'
       : '<p class="vazio">Nenhum pagamento lançado.</p>';
-    return '<tr class="detalhe-linha"><td colspan="7">' + (info ? '<p class="nota" style="margin:0 0 8px">' + info + '</p>' : '') +
+    return '<tr class="detalhe-linha"><td colspan="7">' + contratosDoItem(i) + (info ? '<p class="nota" style="margin:0 0 8px">' + info + '</p>' : '') +
       '<div style="overflow-x:auto">' + pags + '</div></td></tr>';
   }
 
@@ -807,10 +832,12 @@
     renderTabela();
   }
   tbody.addEventListener('click', (ev) => {
+    if (ev.target.closest('a')) return; // link do contrato não abre/fecha a linha
     const tr = ev.target.closest('tr.item-linha');
     if (tr) alternarLinha(tr);
   });
   tbody.addEventListener('keydown', (ev) => {
+    if (ev.target.closest('a')) return;
     const tr = ev.target.closest('tr.item-linha');
     if (tr && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); alternarLinha(tr); }
   });

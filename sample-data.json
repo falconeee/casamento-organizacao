@@ -19,7 +19,13 @@
    "faltaAgendar": "",
    "percentPago": "",
    "contato": "",
-   "obs": ""
+   "obs": "",
+   "contratos": [
+    {
+     "url": "https://example.com/contratos/assessoria.pdf",
+     "nome": "Contrato"
+    }
+   ]
   },
   {
    "item": "Espaço",
@@ -32,7 +38,8 @@
    "faltaAgendar": "",
    "percentPago": "",
    "contato": "",
-   "obs": ""
+   "obs": "",
+   "contratos": []
   },
   {
    "item": "Buffet",
@@ -45,7 +52,17 @@
    "faltaAgendar": "",
    "percentPago": "",
    "contato": "",
-   "obs": ""
+   "obs": "",
+   "contratos": [
+    {
+     "url": "https://example.com/contratos/buffet.pdf",
+     "nome": "Contrato Buffet"
+    },
+    {
+     "url": "https://example.com/contratos/buffet-aditivo.pdf",
+     "nome": "Aditivo"
+    }
+   ]
   },
   {
    "item": "Decoração",
@@ -58,7 +75,8 @@
    "faltaAgendar": "",
    "percentPago": "",
    "contato": "",
-   "obs": ""
+   "obs": "",
+   "contratos": []
   },
   {
    "item": "Igreja",
@@ -71,7 +89,8 @@
    "faltaAgendar": "",
    "percentPago": "",
    "contato": "",
-   "obs": ""
+   "obs": "",
+   "contratos": []
   },
   {
    "item": "Fotografia",
@@ -84,7 +103,13 @@
    "faltaAgendar": "",
    "percentPago": "",
    "contato": "",
-   "obs": ""
+   "obs": "",
+   "contratos": [
+    {
+     "url": "https://example.com/contratos/fotografia.pdf",
+     "nome": "Contrato"
+    }
+   ]
   },
   {
    "item": "Filmagem",
@@ -97,7 +122,8 @@
    "faltaAgendar": "",
    "percentPago": "",
    "contato": "",
-   "obs": ""
+   "obs": "",
+   "contratos": []
   },
   {
    "item": "Bar",
@@ -110,7 +136,8 @@
    "faltaAgendar": "",
    "percentPago": "",
    "contato": "",
-   "obs": ""
+   "obs": "",
+   "contratos": []
   },
   {
    "item": "Banda",
@@ -123,7 +150,8 @@
    "faltaAgendar": "",
    "percentPago": "",
    "contato": "",
-   "obs": ""
+   "obs": "",
+   "contratos": []
   },
   {
    "item": "Doces",
@@ -136,7 +164,8 @@
    "faltaAgendar": "",
    "percentPago": "",
    "contato": "",
-   "obs": ""
+   "obs": "",
+   "contratos": []
   },
   {
    "item": "Bolo",
@@ -149,7 +178,8 @@
    "faltaAgendar": "",
    "percentPago": "",
    "contato": "",
-   "obs": ""
+   "obs": "",
+   "contratos": []
   },
   {
    "item": "Convites",
@@ -162,7 +192,8 @@
    "faltaAgendar": "",
    "percentPago": "",
    "contato": "",
-   "obs": ""
+   "obs": "",
+   "contratos": []
   },
   {
    "item": "Vestido",
@@ -175,7 +206,8 @@
    "faltaAgendar": "",
    "percentPago": "",
    "contato": "",
-   "obs": ""
+   "obs": "",
+   "contratos": []
   },
   {
    "item": "Terno",
@@ -188,7 +220,8 @@
    "faltaAgendar": "",
    "percentPago": "",
    "contato": "",
-   "obs": ""
+   "obs": "",
+   "contratos": []
   },
   {
    "item": "Cabelo/Maquiagem",
@@ -201,7 +234,8 @@
    "faltaAgendar": "",
    "percentPago": "",
    "contato": "",
-   "obs": ""
+   "obs": "",
+   "contratos": []
   }
  ],
  "pagamentos": [

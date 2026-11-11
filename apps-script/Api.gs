@@ -21,12 +21,18 @@ function doGet(e) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const tz = ss.getSpreadsheetTimeZone();
+    const abaItens = ss.getSheetByName(ABAS.ITENS);
+    const itens = lerTabela_(abaItens, COLUNAS_ITENS, tz);
+    const links = lerLinks_(abaItens, 'Contrato');
+    itens.forEach(function (r, i) {
+      r.contratos = links[i] || [];
+      delete r.contrato; // só os links vão para o dashboard
+    });
     return json_({
       ok: true,
       updatedAt: new Date().toISOString(),
       config: lerConfig_(ss, tz),
-      itens: lerTabela_(ss.getSheetByName(ABAS.ITENS), COLUNAS_ITENS, tz)
-        .filter(function (r) { return r.item; }),
+      itens: itens.filter(function (r) { return r.item; }),
       pagamentos: lerTabela_(ss.getSheetByName(ABAS.PAGAMENTOS), COLUNAS_PAGAMENTOS, tz)
         .filter(function (r) { return r.item && r.valor !== ''; }),
     });
@@ -49,6 +55,44 @@ function lerTabela_(sh, colunas, tz) {
     });
     return obj;
   });
+}
+
+/**
+ * Links de uma coluna, linha a linha (mesma ordem de lerTabela_).
+ * Aceita URL colada, hiperlink (Ctrl+K), chip de arquivo (@) e vários links na mesma célula.
+ * Só devolve endereços https.
+ */
+function lerLinks_(sh, titulo) {
+  if (!sh) return [];
+  const linhas = sh.getLastRow() - 1;
+  if (linhas < 1) return [];
+  const cabecalho = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0]
+    .map(function (h) { return String(h).trim(); });
+  const col = cabecalho.indexOf(titulo) + 1;
+  if (!col) return [];
+  return sh.getRange(2, col, linhas, 1).getRichTextValues().map(function (r) {
+    return linksDaCelula_(r[0]);
+  });
+}
+
+function linksDaCelula_(rich) {
+  const vistos = {};
+  const lista = [];
+  function add(url, texto) {
+    url = String(url || '').trim().replace(/[.,;)\]]+$/, '');
+    if (!/^https:\/\//i.test(url) || vistos[url]) return;
+    vistos[url] = true;
+    texto = String(texto || '').trim();
+    const nome = texto && !/^https?:\/\//i.test(texto) ? texto : 'Contrato' + (lista.length ? ' ' + (lista.length + 1) : '');
+    lista.push({ url: url, nome: nome });
+  }
+  if (!rich) return lista;
+  rich.getRuns().forEach(function (run) {
+    if (run.getLinkUrl()) add(run.getLinkUrl(), run.getText());
+  });
+  if (rich.getLinkUrl()) add(rich.getLinkUrl(), rich.getText());
+  (rich.getText().match(/https:\/\/[^\s<>"']+/gi) || []).forEach(function (u) { add(u, ''); });
+  return lista;
 }
 
 function lerConfig_(ss, tz) {

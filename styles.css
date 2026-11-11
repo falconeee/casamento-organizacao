@@ -268,6 +268,23 @@ input, select {
 .tabela tbody tr.item-linha { cursor: pointer; }
 .tabela tbody tr.item-linha:hover { background: var(--surface-2); }
 .tabela .forn { display: block; color: var(--muted); font-size: 12px; }
+
+/* Contratos (links para o Drive) */
+.doc {
+  display: inline-flex; align-items: center; gap: 2px; vertical-align: -2px;
+  margin-left: 4px; padding: 2px 4px; border-radius: 6px;
+  color: var(--accent); text-decoration: none; font-size: 11px; font-weight: 600;
+}
+.doc:hover { background: var(--surface-2); }
+.doc:focus-visible, .contratos a:focus-visible { outline: 2px solid var(--pago); outline-offset: 2px; }
+.contratos {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px;
+  margin: 0 0 8px; font-size: 13px; color: var(--text-2);
+}
+.contratos svg { color: var(--muted); margin-right: -6px; }
+.contratos a { color: var(--accent); text-decoration: none; font-weight: 500; }
+.contratos a:hover { text-decoration: underline; }
+.contratos.sem { color: var(--muted); font-style: italic; }
 .tabela tfoot td { font-weight: 600; border-bottom: 0; border-top: 1px solid var(--baseline); }
 .mini-meter { display: flex; gap: 2px; height: 8px; min-width: 90px; }
 .mini-meter > div { height: 100%; min-width: 0; }

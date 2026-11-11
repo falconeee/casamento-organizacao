@@ -29,6 +29,7 @@ const COLUNAS_ITENS = [
   { chave: 'percentPago', titulo: '% pago', largura: 75, calculada: true },
   { chave: 'contato', titulo: 'Contato', largura: 150 },
   { chave: 'obs', titulo: 'Obs', largura: 280 },
+  { chave: 'contrato', titulo: 'Contrato', largura: 160 }, // links (Drive) — lidos como rich text pela API
 ];
 
 const COLUNAS_PAGAMENTOS = [
@@ -99,6 +100,7 @@ function setupPlanilha() {
 
 /** Menu na planilha para consultar/trocar o token sem abrir o editor. */
 function onOpen() {
+  try { garantirColunaContrato_(); } catch (err) { console.log('Coluna Contrato: ' + err); }
   SpreadsheetApp.getUi()
     .createMenu('💍 Casamento')
     .addItem('Mostrar token do dashboard', 'mostrarToken')
@@ -108,6 +110,29 @@ function onOpen() {
     .addItem('Enviar e-mail de teste', 'enviarEmailDeTeste')
     .addItem('Desativar lembretes', 'desativarLembretes')
     .addToUi();
+}
+
+const NOTA_CONTRATO = 'Link do contrato assinado no Drive. Pode colar a URL, usar Ctrl+K ou digitar @ e escolher o arquivo. Vários arquivos na mesma célula também funcionam.';
+
+/** Planilhas criadas antes da coluna Contrato: adiciona o cabeçalho no fim da aba Itens (só uma vez). */
+function garantirColunaContrato_() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ABAS.ITENS);
+  if (!sh) return;
+  const ultima = sh.getLastColumn();
+  const cabecalho = sh.getRange(1, 1, 1, ultima).getValues()[0].map(function (h) { return String(h).trim(); });
+  if (cabecalho.indexOf('Contrato') >= 0) return;
+  if (sh.getMaxColumns() === ultima) sh.insertColumnAfter(ultima);
+  const col = ultima + 1;
+  sh.getRange(1, col).setValue('Contrato').setNote(NOTA_CONTRATO);
+  estilizarCabecalho_(sh, col);
+  sh.setColumnWidth(col, 160);
+  sh.getRange(1, col, sh.getMaxRows(), 1).setVerticalAlignment('middle');
+  // Estende o filtro do cabeçalho para incluir a coluna nova.
+  const filtro = sh.getFilter();
+  if (filtro && filtro.getRange().getLastColumn() < col) {
+    filtro.remove();
+    sh.getRange(1, 1, sh.getMaxRows(), col).createFilter();
+  }
 }
 
 function mostrarToken() {
@@ -176,6 +201,7 @@ function criarItens_(ss) {
   sh.getRange('E2:H').setNumberFormat(FORMATO_MOEDA);
   sh.getRange('I2:I').setNumberFormat('0%');
   sh.getRange('F1:I1').setNote('Coluna calculada automaticamente a partir da aba Pagamentos. Não edite.');
+  sh.getRange(1, COLUNAS_ITENS.length).setNote(NOTA_CONTRATO);
   sh.getRange('F2:I').setBackground('#f4f6f9').setFontColor('#444444');
 
   validarLista_(sh.getRange('B2:B'), 'Grupos');

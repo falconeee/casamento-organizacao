@@ -43,7 +43,7 @@ In the spreadsheet: **File → Make a copy**. Keep that copy. The setup does not
    This is expected: the "app" is your own script.
 3. When it finishes, the **Execution log** shows: `Setup concluído. Token da API: XXXXXXXX...`. **Copy that token.**
 4. Go back to the spreadsheet and reload the page. You will see:
-   - **`Itens`** (items): one item/contract per row (Group, Supplier, Status, Amount). The grey columns (Paid, Scheduled, Left to schedule, % paid) are computed automatically.
+   - **`Itens`** (items): one item/contract per row (Group, Supplier, Status, Amount). The grey columns (Paid, Scheduled, Left to schedule, % paid) are computed automatically. The last column, **Contrato**, holds links to the signed contracts (see section 15).
    - **`Pagamentos`** (payments): one row per payment or installment, with due date, who pays, method and status.
    - **`Config`**: wedding date, names and maximum budget (optional).
    - **`Listas`** (lists): options for the dropdown lists.
@@ -131,6 +131,8 @@ To see only the layout with sample data: `http://localhost:8000/?demo`.
 
 **Paid an installment?** Change the Status from "A pagar" (to pay) to **Pago**. Rows that are overdue and still "A pagar" turn red, and those due within 30 days turn yellow.
 
+**Signed a contract?** Upload the PDF to the contracts folder in Drive and link it in the item's **Contrato** column (see section 15).
+
 **Renaming an item:** use **Edit → Find and replace** across all tabs, because the name is what links `Itens` and `Pagamentos`.
 
 **New dropdown options** (another group, payment method...): add them at the end of the matching column in the **`Listas`** tab.
@@ -177,3 +179,34 @@ Every day, around 8 a.m., the script looks for **"A pagar"** payments due in N d
 - After paying, change the status to **Pago**: the payment drops out of the next reminders.
 - To stop: **💍 Casamento → Desativar lembretes**.
 - There is no need to create a new API deployment: the reminder runs directly in the spreadsheet, not through the Web app.
+
+## 15. Signed contracts 📄
+
+The contract files stay in **Google Drive**. The spreadsheet keeps only a link, and the dashboard shows a document icon next to the item that opens the file.
+
+**Why Drive:**
+- The repository is public, so files cannot go to GitHub.
+- The links only reach the dashboard through the API, which requires the token.
+- Even if a link leaks, Drive asks for a login with one of the accounts the folder is shared with.
+
+**Setup (once):**
+1. In Drive, create a folder (e.g. `Casamento – Contratos`). Click **Share**:
+   - add your partner as **Editor**;
+   - keep **General access: Restricted**. Files inside the folder inherit this.
+2. In Apps Script, replace the content of `Setup` and `Api` with the current [`apps-script/Setup.gs`](apps-script/Setup.gs) and [`apps-script/Api.gs`](apps-script/Api.gs). Save.
+3. **Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy** (the URL does not change).
+4. Reload the spreadsheet. The **Contrato** column is created at the end of the `Itens` tab automatically (only the first time).
+
+**Linking a contract:** upload the PDF to the folder and, in the item's **Contrato** cell, use one of these:
+- paste the file link (**Share → Copy link**);
+- type a name (e.g. `Contrato assinado`), select it and press **Ctrl+K** / **Cmd+K** to attach the link. The name is shown on the dashboard;
+- type **@** and pick the file (smart chip).
+
+More than one file in the same cell (contract + amendment) also works: use one hyperlink per piece of text, or paste the links separated by spaces. Only `https://` links are accepted.
+
+If a smart chip does not show up on the dashboard, use a pasted link or Ctrl+K instead.
+
+On the dashboard:
+- the icon next to the item opens the first file;
+- expanding the item lists every file;
+- items marked **Contratado** with no file show "Contrato assinado não anexado".
