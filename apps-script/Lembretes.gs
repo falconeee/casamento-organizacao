@@ -184,7 +184,7 @@ function montarEmailLembrete_(ctx, selecionados, teste) {
   const datas = Object.keys(grupos).sort();
   const total = selecionados.reduce(function (s, p) { return s + p.valor; }, 0);
   const n = selecionados.length;
-  const nomes = [ctx.noivo, ctx.noiva].filter(String).join(' & ');
+  const nomes = [ctx.noiva, ctx.noivo].filter(String).join(' & ');
 
   // Assunto
   let assunto;

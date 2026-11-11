@@ -265,7 +265,7 @@
 
   function renderTopo(m) {
     const c = m.config;
-    const nomes = [c.noivo, c.noiva].filter(Boolean).join(' & ');
+    const nomes = [c.noiva, c.noivo].filter(Boolean).join(' & ');
     $('titulo').textContent = nomes ? 'Casamento ' + nomes : 'Casamento';
     document.title = (nomes ? nomes + ' · ' : '') + 'Finanças do casamento';
     const data = parseData(c.dataCasamento);
