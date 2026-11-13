@@ -70,29 +70,71 @@ function lerLinks_(sh, titulo) {
     .map(function (h) { return String(h).trim(); });
   const col = cabecalho.indexOf(titulo) + 1;
   if (!col) return [];
-  return sh.getRange(2, col, linhas, 1).getRichTextValues().map(function (r) {
+  const faixa = sh.getRange(2, col, linhas, 1);
+  const listas = faixa.getRichTextValues().map(function (r) {
     return linksDaCelula_(r[0]);
   });
+  // Chips (@arquivo) e =HYPERLINK() não aparecem no RichTextValue: completa pela API do Sheets.
+  lerLinksViaSheetsApi_(sh, faixa).forEach(function (urls, i) {
+    if (!listas[i]) listas[i] = [];
+    urls.forEach(function (u) { juntarLink_(listas[i], u, ''); });
+  });
+  return listas;
 }
 
 function linksDaCelula_(rich) {
-  const vistos = {};
   const lista = [];
-  function add(url, texto) {
-    url = String(url || '').trim().replace(/[.,;)\]]+$/, '');
-    if (!/^https:\/\//i.test(url) || vistos[url]) return;
-    vistos[url] = true;
-    texto = String(texto || '').trim();
-    const nome = texto && !/^https?:\/\//i.test(texto) ? texto : 'Contrato' + (lista.length ? ' ' + (lista.length + 1) : '');
-    lista.push({ url: url, nome: nome });
-  }
   if (!rich) return lista;
   rich.getRuns().forEach(function (run) {
-    if (run.getLinkUrl()) add(run.getLinkUrl(), run.getText());
+    if (run.getLinkUrl()) juntarLink_(lista, run.getLinkUrl(), run.getText());
   });
-  if (rich.getLinkUrl()) add(rich.getLinkUrl(), rich.getText());
-  (rich.getText().match(/https:\/\/[^\s<>"']+/gi) || []).forEach(function (u) { add(u, ''); });
+  if (rich.getLinkUrl()) juntarLink_(lista, rich.getLinkUrl(), rich.getText());
+  (rich.getText().match(/https:\/\/[^\s<>"']+/gi) || []).forEach(function (u) { juntarLink_(lista, u, ''); });
   return lista;
+}
+
+/** Adiciona um link https à lista, sem repetir. */
+function juntarLink_(lista, url, texto) {
+  url = String(url || '').trim().replace(/[.,;)\]]+$/, '');
+  if (!/^https:\/\//i.test(url)) return;
+  if (lista.some(function (c) { return c.url === url; })) return;
+  texto = String(texto || '').replace(/￼/g, '').trim();
+  const nome = texto && !/^https?:\/\//i.test(texto) ? texto : 'Contrato' + (lista.length ? ' ' + (lista.length + 1) : '');
+  lista.push({ url: url, nome: nome });
+}
+
+/**
+ * Lê chips de arquivo e hiperlinks de fórmula pela API do Sheets (serviço avançado "Sheets").
+ * Devolve uma lista de URLs por linha. Sem o serviço ativado, devolve [] e nada quebra.
+ */
+function lerLinksViaSheetsApi_(sh, faixa) {
+  if (typeof Sheets === 'undefined') return [];
+  try {
+    const nomeAba = "'" + sh.getName().replace(/'/g, "''") + "'";
+    const resp = Sheets.Spreadsheets.get(sh.getParent().getId(), {
+      ranges: [nomeAba + '!' + faixa.getA1Notation()],
+      includeGridData: true,
+      fields: 'sheets(data(rowData(values(hyperlink,chipRuns(chip(richLinkProperties(uri))),textFormatRuns(format(link(uri)))))))',
+    });
+    const dados = (((resp.sheets || [])[0] || {}).data || [])[0] || {};
+    return (dados.rowData || []).map(function (linha) {
+      const cel = (linha.values || [])[0] || {};
+      const urls = [];
+      if (cel.hyperlink) urls.push(cel.hyperlink);
+      (cel.chipRuns || []).forEach(function (r) {
+        const uri = r.chip && r.chip.richLinkProperties && r.chip.richLinkProperties.uri;
+        if (uri) urls.push(uri);
+      });
+      (cel.textFormatRuns || []).forEach(function (r) {
+        const uri = r.format && r.format.link && r.format.link.uri;
+        if (uri) urls.push(uri);
+      });
+      return urls;
+    });
+  } catch (err) {
+    console.log('Sheets API (contratos): ' + err);
+    return [];
+  }
 }
 
 function lerConfig_(ss, tz) {
@@ -121,4 +163,18 @@ function iguais_(a, b) {
 
 function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+/** Diagnóstico: rode no editor e veja em "Registro de execução" o que a API enxerga na coluna Contrato. */
+function testarContratos() {
+  const sh = SpreadsheetApp.getActive().getSheetByName(ABAS.ITENS);
+  const itens = lerTabela_(sh, COLUNAS_ITENS, Session.getScriptTimeZone());
+  const links = lerLinks_(sh, 'Contrato');
+  console.log('Serviço avançado Sheets: ' + (typeof Sheets === 'undefined' ? 'NÃO ativado' : 'ativado'));
+  itens.forEach(function (r, i) {
+    if (!r.item) return;
+    const l = links[i] || [];
+    console.log(r.item + ': ' + (l.length ? l.map(function (c) { return c.nome + ' → ' + c.url; }).join(' | ')
+      : 'nenhum link' + (r.contrato ? ' (célula tem texto: "' + r.contrato + '")' : '')));
+  });
 }

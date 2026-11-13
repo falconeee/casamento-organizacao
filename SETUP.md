@@ -194,17 +194,21 @@ The contract files stay in **Google Drive**. The spreadsheet keeps only a link, 
    - add your partner as **Editor**;
    - keep **General access: Restricted**. Files inside the folder inherit this.
 2. In Apps Script, replace the content of `Setup` and `Api` with the current [`apps-script/Setup.gs`](apps-script/Setup.gs) and [`apps-script/Api.gs`](apps-script/Api.gs). Save.
-3. **Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy** (the URL does not change).
-4. Reload the spreadsheet. The **Contrato** column is created at the end of the `Itens` tab automatically (only the first time).
+3. In the Apps Script editor, click **+** next to **Services**, pick **Google Sheets API** and click **Add** (keep the identifier `Sheets`). Without it, smart chips (`@file`) and `=HYPERLINK()` links are not read.
+4. **Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy** (the URL does not change).
+5. Reload the spreadsheet. The **Contrato** column is created at the end of the `Itens` tab automatically (only the first time).
 
 **Linking a contract:** upload the PDF to the folder and, in the item's **Contrato** cell, use one of these:
 - paste the file link (**Share → Copy link**);
 - type a name (e.g. `Contrato assinado`), select it and press **Ctrl+K** / **Cmd+K** to attach the link. The name is shown on the dashboard;
-- type **@** and pick the file (smart chip).
+- type **@** and pick the file (smart chip). Needs the Google Sheets API service from step 3; the dashboard names it "Contrato".
 
 More than one file in the same cell (contract + amendment) also works: use one hyperlink per piece of text, or paste the links separated by spaces. Only `https://` links are accepted.
 
-If a smart chip does not show up on the dashboard, use a pasted link or Ctrl+K instead.
+**If a contract does not show up on the dashboard:**
+1. In Apps Script, select the `testarContratos` function and click **Run**. The execution log lists, for each item, the links the API can see and whether the Sheets service is enabled.
+2. If the log shows the link but the dashboard does not, the web app is still on the old version: redo step 4 (**New version**).
+3. If the log shows "nenhum link", enable the Sheets service (step 3) or use a pasted link / Ctrl+K.
 
 On the dashboard:
 - the icon next to the item opens the first file;
