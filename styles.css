@@ -360,3 +360,13 @@ input, select {
 .legenda i.linha-pago, .legenda i.linha-projecao { width: 14px; height: 2px; border-radius: 1px; }
 .legenda i.linha-pago { background: var(--pago); }
 .legenda i.linha-projecao { background: var(--agendado); }
+
+/* pizza "Quem paga" */
+.pizza { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--grid); }
+.pizza svg { flex: none; overflow: visible; }
+.pizza svg path, .pizza svg circle { stroke: var(--surface); stroke-width: 2; stroke-linejoin: round; }
+.pizza-legenda { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; flex: 1 1 180px; min-width: 0; }
+.pizza-legenda li { display: grid; grid-template-columns: 1fr auto; gap: 0 12px; font-size: 14px; }
+.pizza-legenda li > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pizza-legenda b { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.pizza-valor { grid-column: 1 / -1; padding-left: 14px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }

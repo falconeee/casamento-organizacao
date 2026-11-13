@@ -45,7 +45,7 @@
     bruto: null,
     modelo: null,
     carregadoEm: null,
-    ordem: { col: 'valor', dir: 'desc' },
+    ordem: { col: 'status', dir: 'asc' },
     abertos: new Set(),
     carregando: false,
   };
@@ -268,7 +268,7 @@
   function renderTopo(m) {
     const c = m.config;
     const nomes = [c.noiva, c.noivo].filter(Boolean).join(' & ');
-    $('titulo').textContent = nomes ? 'Casamento ' + nomes : 'Casamento';
+    $('titulo').textContent = (nomes ? 'Casamento ' + nomes : 'Casamento') + ' 💍';
     document.title = (nomes ? nomes + ' · ' : '') + 'Finanças do casamento';
     const data = parseData(c.dataCasamento);
     const el = $('contagem');
@@ -716,6 +716,38 @@
       .map((x) => ({ ...x, ponto: m.cores.get(x.nome), partes: [{ cor: 'pago', nome: 'Pago', v: x.pago }, { cor: 'agendado', nome: 'A pagar', v: x.aPagar }] }));
     const max = Math.max(0, ...linhas.map((l) => l.pago + l.aPagar));
     barras($('grafico-pessoas'), linhas, max, (l) => moeda(l.pago) + ' pago · ' + moeda(l.aPagar) + ' a pagar');
+    renderPizzaPessoas(linhas);
+  }
+
+  // Pizza: fatia de cada pessoa no total (pago + a pagar), começando às 12h no sentido horário.
+  function renderPizzaPessoas(linhas) {
+    const el = $('pizza-pessoas');
+    const fatias = linhas.map((l) => ({ ...l, total: l.pago + l.aPagar })).filter((l) => l.total > 0.005);
+    const total = somaCampo(fatias, 'total');
+    if (!total) { el.innerHTML = ''; el.hidden = true; return; }
+    el.hidden = false;
+    const R = 64; const C = 70;
+    const ponto = (a) => [(C + R * Math.sin(a)).toFixed(2), (C - R * Math.cos(a)).toFixed(2)];
+    let ang = 0;
+    const formas = fatias.map((f, i) => {
+      const frac = f.total / total;
+      const estilo = ' style="fill:var(--' + f.ponto + ')" data-i="' + i + '"';
+      if (frac > 0.9999) return '<circle cx="' + C + '" cy="' + C + '" r="' + R + '"' + estilo + '/>';
+      const [x0, y0] = ponto(ang);
+      ang += frac * 2 * Math.PI;
+      const [x1, y1] = ponto(ang);
+      return '<path d="M' + C + ' ' + C + 'L' + x0 + ' ' + y0 + 'A' + R + ' ' + R + ' 0 ' + (frac > 0.5 ? 1 : 0) + ' 1 ' + x1 + ' ' + y1 + 'Z"' + estilo + '/>';
+    });
+    const rotulo = fatias.map((f) => f.nome + ' ' + pct(f.total / total)).join(', ');
+    el.innerHTML =
+      '<svg viewBox="0 0 140 140" width="140" height="140" role="img" aria-label="Participação no total: ' + esc(rotulo) + '">' + formas.join('') + '</svg>' +
+      '<ul class="pizza-legenda">' + fatias.map((f, i) =>
+        '<li data-i="' + i + '"><span><i class="ponto" style="background:var(--' + f.ponto + ')"></i>' + esc(f.nome) + '</span>' +
+        '<b>' + pct(f.total / total) + '</b><span class="pizza-valor">' + moeda(f.total) + '</span></li>').join('') + '</ul>';
+    el.querySelectorAll('[data-i]').forEach((n) => {
+      const f = fatias[+n.dataset.i];
+      tooltip(n, () => linhasTT(f.nome + ' · ' + pct(f.total / total) + ' do total', [['pago', 'Pago', f.pago], ['agendado', 'A pagar', f.aPagar]]));
+    });
   }
 
   // ---------- tabela ----------
@@ -747,7 +779,7 @@
     const st = $('filtro-status').value;
     const gr = $('filtro-grupo').value;
     const { col, dir } = estado.ordem;
-    const ordemStatus = { 'A definir': 0, 'Orçamento': 1, 'Contratado': 2, 'Quitado': 3, 'Cancelado': 4 };
+    const ordemStatus = { 'Quitado': 0, 'Contratado': 1, 'Orçamento': 2, 'A definir': 3, 'Cancelado': 4 };
     const chaveOrdem = (i) => (col === 'status' ? ordemStatus[i.exibido] : col === 'item' ? i.item.toLowerCase() : col === 'valor' ? i.total : i[col]);
 
     const linhas = m.itens.filter((i) =>
@@ -756,7 +788,8 @@
       .sort((a, b) => {
         const x = chaveOrdem(a); const y = chaveOrdem(b);
         const r = typeof x === 'string' ? x.localeCompare(y, 'pt-BR') : x - y;
-        return dir === 'asc' ? r : -r;
+        if (r) return dir === 'asc' ? r : -r;
+        return col === 'status' ? b.total - a.total : 0; // empate no status: maior valor primeiro
       });
 
     const tbody = document.querySelector('#tabela-itens tbody');
@@ -844,7 +877,7 @@
   document.querySelectorAll('#tabela-itens thead th').forEach((th) => {
     th.addEventListener('click', () => {
       const col = th.dataset.ordem;
-      estado.ordem = { col, dir: estado.ordem.col === col && estado.ordem.dir === 'desc' ? 'asc' : (col === 'item' && estado.ordem.col !== col ? 'asc' : 'desc') };
+      estado.ordem = { col, dir: estado.ordem.col === col && estado.ordem.dir === 'desc' ? 'asc' : ((col === 'item' || col === 'status') && estado.ordem.col !== col ? 'asc' : 'desc') };
       renderTabela();
     });
   });
